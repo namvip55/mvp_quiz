@@ -18,22 +18,27 @@ async function loadExam(id: string) {
 
 export default async function TakeExamPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ mode?: string | string[] }>;
 }) {
   const { id } = await params;
+  const query = await searchParams;
+  const rawMode = Array.isArray(query.mode) ? query.mode[0] : query.mode;
+  const mode = rawMode === "practice" ? "practice" : "exam";
   const result = await loadExam(id);
 
   if (!result.exam) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-10">
-        <p className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-700">{result.error}</p>
-        <Link href="/exams" className="mt-4 inline-block text-sm underline">
+      <div className="ui-page max-w-4xl">
+        <p className="ui-alert-error">{result.error}</p>
+        <Link href="/exams" className="ui-link mt-4 inline-block text-sm">
           Quay lại danh sách đề
         </Link>
       </div>
     );
   }
 
-  return <TakeExamClient exam={result.exam} />;
+  return <TakeExamClient exam={result.exam} mode={mode} />;
 }

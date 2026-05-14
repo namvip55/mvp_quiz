@@ -1,6 +1,28 @@
 import { ParsedQuestion, ParsedQuizPayload } from "@/lib/types/quiz";
 
-const QUESTION_SPLIT_REGEX = /(?:^|\n)\s*Câu\s+(\d+)\s*\n/giu;
+const QUESTION_HEADER_REGEX =
+  /^\s*Câu\s+(\d+)\s*(?:(?:\[\s*<\s*[A-Za-z0-9]{2}\s*>\s*\])|(?:<\s*[A-Za-z0-9]{2}\s*>))?\s*:?\s*(.*)$/iu;
+const QUESTION_HEADER_FALLBACK_REGEX = /^\s*Câu\s+(\d+)\s*(?:\[[^\]]*\])?\s*:?\s*(.*)$/iu;
+
+function parseQuestionHeader(line: string): { number: number; questionText: string } | null {
+  const strict = line.match(QUESTION_HEADER_REGEX);
+  if (strict) {
+    return {
+      number: Number(strict[1]),
+      questionText: stripHtmlTags(strict[2] || ""),
+    };
+  }
+
+  const fallback = line.match(QUESTION_HEADER_FALLBACK_REGEX);
+  if (fallback) {
+    return {
+      number: Number(fallback[1]),
+      questionText: stripHtmlTags(fallback[2] || ""),
+    };
+  }
+
+  return null;
+}
 
 function decodeHtml(input: string): string {
   return input
@@ -17,13 +39,15 @@ function stripHtmlTags(input: string): string {
 }
 
 function normalizeOptionLine(line: string): string {
-  return line.replace(/^\s*(?:\[[^\]]+\]|[A-Da-d][\).])\s*/u, "").trim();
+  return line.replace(/^\s*(?:\[<\$>\]|\[[^\]]+\]|[A-Da-d][\).])\s*/u, "").trim();
 }
 
 function containsRedTag(rawLine: string): boolean {
   return (
     /<font[^>]*color\s*=\s*["']?red["']?[^>]*>/i.test(rawLine) ||
-    /style\s*=\s*["'][^"']*color\s*:\s*red[^"']*["']/i.test(rawLine)
+    /style\s*=\s*["'][^"']*color\s*:\s*red[^"']*["']/i.test(rawLine) ||
+    /style\s*=\s*["'][^"']*color\s*:\s*#(?:f00|ff0000)\b[^"']*["']/i.test(rawLine) ||
+    /style\s*=\s*["'][^"']*color\s*:\s*rgb\(\s*255\s*,\s*0\s*,\s*0\s*\)[^"']*["']/i.test(rawLine)
   );
 }
 
@@ -50,26 +74,26 @@ function htmlToAnnotatedLines(input: string): string[] {
     .split(/\r?\n/u)
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => {
-      if (containsRedTag(line)) {
-        return `[RED] ${line}`;
-      }
-      return line;
-    });
+    .map((line) => (containsRedTag(line) ? `[RED] ${line}` : line));
 }
 
-function parseQuestionBlock(questionNumber: number, block: string): ParsedQuestion {
-  const rawLines = block
-    .split(/\r?\n/u)
-    .map((line) => line.trim())
-    .filter(Boolean);
+function isOptionLine(line: string): boolean {
+  return /^\s*(?:\[<\$>\]|\[[^\]]+\]|[A-Da-d][\).])\s+/u.test(line);
+}
 
-  if (rawLines.length < 2) {
-    throw new Error(`Câu ${questionNumber} không đủ dữ liệu câu hỏi và đáp án.`);
+function finalizeQuestion(
+  questionNumber: number,
+  questionText: string,
+  optionLines: string[],
+): ParsedQuestion {
+  const normalizedQuestion = questionText.trim();
+  if (!normalizedQuestion) {
+    throw new Error(`Câu ${questionNumber} thiếu nội dung câu hỏi.`);
   }
 
-  const questionText = stripHtmlTags(rawLines[0]);
-  const optionLines = rawLines.slice(1);
+  if (optionLines.length < 2) {
+    throw new Error(`Câu ${questionNumber} không đủ đáp án lựa chọn.`);
+  }
 
   const options = optionLines.map((line) => {
     const cleanLine = line.replace(/^\[RED\]\s*/i, "");
@@ -87,7 +111,7 @@ function parseQuestionBlock(questionNumber: number, block: string): ParsedQuesti
 
   return {
     question_number: questionNumber,
-    question: questionText,
+    question: normalizedQuestion,
     options,
   };
 }
@@ -97,36 +121,56 @@ export function parseQuizFromText(input: string): ParsedQuizPayload {
     throw new Error("Nội dung đầu vào rỗng.");
   }
 
-  const normalized = htmlToAnnotatedLines(input).join("\n").replace(/\r\n/g, "\n").trim();
-
-  const matches: Array<{ number: number; start: number; end: number }> = [];
-  const regex = new RegExp(QUESTION_SPLIT_REGEX);
-
-  for (;;) {
-    const m = regex.exec(normalized);
-    if (!m) break;
-
-    matches.push({
-      number: Number(m[1]),
-      start: m.index,
-      end: regex.lastIndex,
-    });
-  }
-
-  if (matches.length === 0) {
-    throw new Error("Không tìm thấy mẫu 'Câu <số>' trong nội dung.");
+  const lines = htmlToAnnotatedLines(input);
+  if (lines.length === 0) {
+    throw new Error("Nội dung đầu vào rỗng.");
   }
 
   const result: ParsedQuestion[] = [];
 
-  for (let i = 0; i < matches.length; i += 1) {
-    const current = matches[i];
-    const next = matches[i + 1];
-    const blockStart = current.end;
-    const blockEnd = next ? next.start : normalized.length;
-    const block = normalized.slice(blockStart, blockEnd).trim();
+  let currentQuestionNumber: number | null = null;
+  let currentQuestionText = "";
+  let currentOptionLines: string[] = [];
 
-    result.push(parseQuestionBlock(current.number, block));
+  const flushCurrentQuestion = () => {
+    if (currentQuestionNumber === null) return;
+
+    result.push(finalizeQuestion(currentQuestionNumber, currentQuestionText, currentOptionLines));
+
+    currentQuestionNumber = null;
+    currentQuestionText = "";
+    currentOptionLines = [];
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    const parsedHeader = parseQuestionHeader(line);
+
+    if (parsedHeader) {
+      flushCurrentQuestion();
+      currentQuestionNumber = parsedHeader.number;
+      currentQuestionText = parsedHeader.questionText;
+      continue;
+    }
+
+    if (currentQuestionNumber === null) {
+      continue;
+    }
+
+    if (isOptionLine(line)) {
+      currentOptionLines.push(line);
+      continue;
+    }
+
+    if (currentOptionLines.length === 0) {
+      currentQuestionText = `${currentQuestionText} ${stripHtmlTags(line)}`.trim();
+    }
+  }
+
+  flushCurrentQuestion();
+
+  if (result.length === 0) {
+    throw new Error("Không tìm thấy mẫu 'Câu <số>' trong nội dung.");
   }
 
   return result;
