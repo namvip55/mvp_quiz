@@ -1,4 +1,4 @@
-export async function withMinimumDelay<T>(task: Promise<T>, minimumMs = 1500): Promise<T> {
+export async function withMinimumDelay<T>(task: Promise<T>, minimumMs = 1000): Promise<T> {
   const startedAt = Date.now();
 
   try {
