@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MVP Quiz (Next.js + Tailwind + Supabase)
 
-## Getting Started
+Ứng dụng thi trắc nghiệm MVP:
+- Tạo đề thi từ **DOCX** hoặc **text/HTML fallback**.
+- Parse câu hỏi theo quy tắc `Câu <số>`.
+- Nhận diện đáp án đúng khi dòng đáp án có màu đỏ (`<font color="red">`, `style="color:red"`, ...).
+- Làm đề và chấm điểm ngay trên giao diện.
+- Không yêu cầu đăng ký/đăng nhập.
 
-First, run the development server:
+## 1) Cài đặt
+
+```bash
+npm install
+```
+
+## 2) Thiết lập Supabase
+
+### Schema migration
+File migration đã có sẵn tại:
+- `supabase/migrations/20260514_create_quiz_schema.sql`
+
+Bạn chạy file SQL này trên Supabase SQL Editor để tạo các bảng:
+- `exams`
+- `questions`
+- `options`
+
+Có trigger đảm bảo mỗi câu hỏi luôn có đúng 1 đáp án đúng.
+
+### Environment
+Tạo `.env.local` từ `.env.local.example`:
+
+```bash
+cp .env.local.example .env.local
+```
+
+Điền giá trị:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
+
+## 3) Chạy local
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Mở `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 4) Luồng sử dụng
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/create`: tạo đề thi
+  - Upload `.docx` hoặc dán text/HTML fallback.
+  - Parse preview JSON.
+  - Lưu đề vào Supabase.
+- `/exams`: danh sách đề thi.
+- `/exams/[id]`: làm đề và nộp bài để xem điểm.
 
-## Learn More
+## 5) Build/Lint
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run lint
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 6) Deploy Vercel
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Push code lên GitHub.
+2. Import repo vào Vercel.
+3. Trong Vercel Project Settings -> Environment Variables, thêm:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+4. Deploy.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Sau deploy, app sẽ hoạt động đầy đủ nếu schema Supabase đã được apply.
