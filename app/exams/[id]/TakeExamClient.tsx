@@ -54,8 +54,18 @@ export default function TakeExamClient({
     void audio.play().catch(() => {});
   };
 
+  const goToNextQuestion = useCallback(() => {
+    setCurrentIndex((prev) => Math.min(questionsCount - 1, prev + 1));
+  }, [questionsCount]);
+
   const confirmCurrentAnswer = useCallback(() => {
     if (!currentQuestion) return;
+
+    if (confirmedAnswers[currentQuestion.id]) {
+      goToNextQuestion();
+      return;
+    }
+
     const selectedOptionId = selectedAnswers[currentQuestion.id];
     if (!selectedOptionId) return;
 
@@ -68,7 +78,7 @@ export default function TakeExamClient({
     if (selectedOption?.is_correct) {
       playSuccessSound();
     }
-  }, [currentQuestion, selectedAnswers]);
+  }, [confirmedAnswers, currentQuestion, goToNextQuestion, selectedAnswers]);
 
   useEffect(() => {
     if (!isPracticeMode) return;
@@ -101,11 +111,7 @@ export default function TakeExamClient({
 
       if (event.key === "Enter") {
         event.preventDefault();
-        if (confirmedAnswers[currentQuestion.id]) {
-          setCurrentIndex((prev) => Math.min(questionsCount - 1, prev + 1));
-        } else {
-          confirmCurrentAnswer();
-        }
+        confirmCurrentAnswer();
         return;
       }
 
@@ -123,7 +129,7 @@ export default function TakeExamClient({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [confirmCurrentAnswer, confirmedAnswers, isPracticeMode, currentQuestion, questionsCount]);
+  }, [confirmCurrentAnswer, isPracticeMode, currentQuestion, questionsCount]);
 
   const score = useMemo(() => {
     if (!submitted) return null;
@@ -236,21 +242,11 @@ export default function TakeExamClient({
             Tiếp
           </button>
           <button
-            className="ui-btn-primary"
+            className="ui-btn-primary px-6 py-3 text-base font-semibold"
             onClick={confirmCurrentAnswer}
-            disabled={!currentQuestion || !selectedAnswers[currentQuestion.id]}
+            disabled={!currentQuestion || (!confirmedAnswers[currentQuestion.id] && !selectedAnswers[currentQuestion.id])}
           >
-            Xác nhận
-          </button>
-          <button
-            className="ui-btn-secondary"
-            onClick={() => {
-              setSelectedAnswers({});
-              setConfirmedAnswers({});
-              setCurrentIndex(0);
-            }}
-          >
-            Làm lại
+            {confirmedAnswers[currentQuestion.id] ? "Câu tiếp" : "Xác nhận"}
           </button>
           <Link href="/exams" className="ui-link text-sm">
             Danh sách đề
