@@ -64,6 +64,38 @@ body {
   font-family: var(--font-geist-sans), Inter, system-ui, sans-serif;
 }
 
+.app-bg {
+  background-color: var(--canvas);
+  background-image:
+    radial-gradient(42rem 42rem at 110% -10%, color-mix(in oklab, var(--primary) 10%, transparent) 0%, transparent 64%),
+    radial-gradient(30rem 30rem at -8% 78%, color-mix(in oklab, var(--surface-cream-strong) 74%, white) 0%, transparent 68%),
+    linear-gradient(to bottom, color-mix(in oklab, var(--surface-soft) 36%, transparent), transparent 34%);
+}
+
+.app-main-shell {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.app-main-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.56;
+  background-image:
+    repeating-linear-gradient(
+      110deg,
+      transparent 0,
+      transparent 42px,
+      color-mix(in oklab, var(--hairline) 74%, transparent) 43px,
+      transparent 45px
+    ),
+    radial-gradient(36rem 36rem at 100% 0%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%);
+}
+
 h1,
 h2,
 h3 {
@@ -71,10 +103,78 @@ h3 {
 }
 
 .ui-page {
+  position: relative;
+  isolation: isolate;
   margin-inline: auto;
   width: 100%;
   max-width: 72rem;
   padding: 2.5rem 1rem;
+}
+
+.ui-page > * {
+  position: relative;
+  z-index: 1;
+}
+
+.ui-page::before {
+  content: "";
+  position: absolute;
+  width: min(28vw, 18rem);
+  height: min(28vw, 18rem);
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(6px);
+  opacity: 0;
+}
+
+.ui-page-decor-home::before {
+  top: 1rem;
+  right: 0.5rem;
+  opacity: 0.58;
+  background: radial-gradient(circle at 30% 30%, color-mix(in oklab, var(--primary) 36%, white), transparent 72%);
+}
+
+.ui-page-decor-create::before {
+  bottom: 1.5rem;
+  left: 0.25rem;
+  opacity: 0.5;
+  background: radial-gradient(circle at 60% 40%, color-mix(in oklab, var(--surface-cream-strong) 92%, white), transparent 70%);
+}
+
+.ui-page-decor-exams::before {
+  top: 6rem;
+  right: 0.5rem;
+  opacity: 0.46;
+  background:
+    radial-gradient(circle, transparent 56%, color-mix(in oklab, var(--hairline) 84%, white) 57%, transparent 67%),
+    radial-gradient(circle at 48% 52%, color-mix(in oklab, var(--primary) 20%, white), transparent 72%);
+}
+
+.ui-page-decor-take::before {
+  top: 0.75rem;
+  left: 0.25rem;
+  opacity: 0.36;
+  background: radial-gradient(circle at 40% 40%, color-mix(in oklab, var(--surface-soft) 86%, white), transparent 72%);
+}
+
+@media (max-width: 768px) {
+  .app-main-shell::before {
+    opacity: 0.34;
+  }
+
+  .ui-page::before {
+    width: 9.5rem;
+    height: 9.5rem;
+    filter: blur(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-main-shell::before,
+  .ui-page::before {
+    filter: none;
+  }
 }
 
 .ui-card {

@@ -9,10 +9,17 @@ type LoadingLinkProps = {
   href: string;
   className?: string;
   label?: string;
+  enableLoading?: boolean;
   children: React.ReactNode;
 };
 
-export default function LoadingLink({ href, className, label = "Đang chuyển trang...", children }: LoadingLinkProps) {
+export default function LoadingLink({
+  href,
+  className,
+  label = "Đang chuyển trang...",
+  enableLoading = false,
+  children,
+}: LoadingLinkProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [showLoading, setShowLoading] = useState(false);
@@ -24,6 +31,7 @@ export default function LoadingLink({ href, className, label = "Đang chuyển t
         href={href}
         className={className}
         onClick={(event) => {
+          if (!enableLoading) return;
           if (event.defaultPrevented) return;
           if (event.button !== 0) return;
           if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;

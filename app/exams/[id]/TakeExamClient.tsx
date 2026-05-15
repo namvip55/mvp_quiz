@@ -41,6 +41,8 @@ export default function TakeExamClient({
   const isPracticeMode = mode === "practice";
   const questionsCount = exam.questions.length;
   const currentQuestion = exam.questions[currentIndex] ?? null;
+  const confirmedCount = Object.keys(confirmedAnswers).length;
+  const isPracticeCompleted = questionsCount > 0 && confirmedCount === questionsCount;
 
   useEffect(() => {
     if (!isPracticeMode) return;
@@ -148,7 +150,7 @@ export default function TakeExamClient({
 
   if (isPracticeMode) {
     return (
-      <div className="ui-page max-w-5xl">
+      <div className="ui-page ui-page-decor-take max-w-5xl">
         <div className="mb-4">
           <Link href="/exams" className="ui-btn-secondary text-sm">
             ← Back
@@ -168,6 +170,12 @@ export default function TakeExamClient({
         <div className="mb-4 rounded-lg border border-hairline bg-surface-soft p-3 text-sm font-medium text-body-strong">
           Câu {questionsCount === 0 ? 0 : currentIndex + 1} / {questionsCount}
         </div>
+
+        {isPracticeCompleted && (
+          <div className="ui-alert-success mb-4">
+            Bạn đã hoàn thành luyện tập.
+          </div>
+        )}
 
         {currentQuestion ? (
           <section className="ui-card p-5">
@@ -244,10 +252,26 @@ export default function TakeExamClient({
           <button
             className="ui-btn-primary px-6 py-3 text-base font-semibold"
             onClick={confirmCurrentAnswer}
-            disabled={!currentQuestion || (!confirmedAnswers[currentQuestion.id] && !selectedAnswers[currentQuestion.id])}
+            disabled={
+              isPracticeCompleted ||
+              !currentQuestion ||
+              (!confirmedAnswers[currentQuestion.id] && !selectedAnswers[currentQuestion.id])
+            }
           >
             {confirmedAnswers[currentQuestion.id] ? "Câu tiếp" : "Xác nhận"}
           </button>
+          {isPracticeCompleted && (
+            <button
+              className="ui-btn-secondary"
+              onClick={() => {
+                setSelectedAnswers({});
+                setConfirmedAnswers({});
+                setCurrentIndex(0);
+              }}
+            >
+              Làm lại
+            </button>
+          )}
           <Link href="/exams" className="ui-link text-sm">
             Danh sách đề
           </Link>

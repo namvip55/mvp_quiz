@@ -7,7 +7,7 @@ export default async function ExamsPage() {
   const exams = await listExams();
 
   return (
-    <div className="ui-page max-w-5xl">
+    <div className="ui-page ui-page-decor-exams max-w-5xl">
       <div className="mb-4">
         <LoadingLink href="/" className="ui-btn-secondary text-sm" label="Đang về trang chủ...">
           ← Back
@@ -32,7 +32,7 @@ export default async function ExamsPage() {
                 <p className="mt-1 text-sm ui-muted">{exam.description || "Không có mô tả"}</p>
               </LoadingLink>
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                <LoadingLink href={`/exams/${exam.id}`} className="ui-btn-primary text-sm" label="Đang tải đề thi...">
+                <LoadingLink href={`/exams/${exam.id}`} className="ui-btn-primary text-sm" label="Đang tải đề thi..." enableLoading>
                   Làm đề
                 </LoadingLink>
                 <LoadingLink

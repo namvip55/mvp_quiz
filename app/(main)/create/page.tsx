@@ -43,13 +43,9 @@ export default function CreateExamPage() {
     setSaveStatus({ type: "idle" });
 
     try {
-      await withMinimumDelay(
-        (async () => {
-          const source = await buildInputSource();
-          const parsed = parseQuizFromText(source);
-          setPreview(parsed);
-        })(),
-      );
+      const source = await buildInputSource();
+      const parsed = parseQuizFromText(source);
+      setPreview(parsed);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Không thể parse dữ liệu.";
       setPreview([]);
@@ -138,7 +134,7 @@ export default function CreateExamPage() {
   }
 
   return (
-    <div className="ui-page max-w-6xl">
+    <div className="ui-page ui-page-decor-create max-w-6xl">
       <div className="mb-4 flex items-center justify-between gap-3">
         <LoadingLink href="/" className="ui-btn-secondary text-sm" label="Đang về trang chủ...">
           ← Back
@@ -148,7 +144,7 @@ export default function CreateExamPage() {
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">
         <section className="ui-card relative p-5">
-          {(isParsing || isSaving) && <AiLoading label={isSaving ? "Đang lưu đề thi..." : "Đang parse dữ liệu..."} />}
+          {isSaving && <AiLoading label="Đang lưu đề thi..." />}
           <h2 className="text-lg font-medium text-ink">Thông tin đề</h2>
 
           <label className="mt-4 block text-sm font-medium text-body-strong">Tiêu đề</label>
